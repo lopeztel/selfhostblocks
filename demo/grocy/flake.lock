@@ -111,16 +111,14 @@
         "sops-nix": "sops-nix"
       },
       "locked": {
-        "dirtyRev": "97f213a137aaf976d84300a1e0568ffaeb782060-dirty",
-        "dirtyShortRev": "97f213a-dirty",
-        "lastModified": 1709341992,
-        "narHash": "sha256-1FvtI4KFioBSVNWwdRobox8WK3j/DkyhMlhzq6W+l0M=",
-        "type": "git",
-        "url": "file:///home/lopeztel/selfhostblocks"
+        "lastModified": 0,
+        "narHash": "sha256-hAYNeOaiGfVDBcT0R1+xd3NIXE/U38H1zXsblL7n9ag=",
+        "path": "/nix/store/4qpc9p1pgz8jri99abkwnfzfqa1i09k4-source",
+        "type": "path"
       },
       "original": {
-        "type": "git",
-        "url": "file:///home/lopeztel/selfhostblocks"
+        "path": "/nix/store/4qpc9p1pgz8jri99abkwnfzfqa1i09k4-source",
+        "type": "path"
       }
     },
     "sops-nix": {

@@ -2,7 +2,7 @@
   description = "Home Assistant example for Self Host Blocks";
 
   inputs = {
-    selfhostblocks.url = "/home/lopeztel/selfhostblocks";
+    selfhostblocks.url = "../..";
   };
 
   outputs = inputs@{ self, selfhostblocks, ... }:
