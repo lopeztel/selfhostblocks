@@ -29,12 +29,6 @@ in
       default = "/var/lib/grocy";
     };
 
-    webPort = lib.mkOption {
-      type = lib.types.int;
-      description = "Grocy web port";
-      default = 8114;
-    };
-
     currency = lib.mkOption {
       type = lib.types.str;
       description = "ISO 4217 code for the currency to display.";
@@ -43,10 +37,11 @@ in
     };
 
     culture = lib.mkOption {
-      type = lib.types.str;
-      description = "Display language of the frontend. Must be one of one of `de`, `en`, `da`, `en_GB`, `es`, `fr`, `hu`, `it`, `nl`, `no`, `pl`, `pt_BR`, `ru`, `sk_SK`, `sv_SE`, `tr`";
+      type = lib.types.enum [ "de" "en" "da" "en_GB" "es" "fr" "hu" "it" "nl" "no" "pl" "pt_BR" "ru" "sk_SK" "sv_SE" "tr" ];
       default = "en";
-      example = "no";
+      description = lib.mdDoc ''
+        Display language of the frontend.
+      '';
     };
 
     ssl = lib.mkOption {
@@ -66,41 +61,6 @@ in
       }
       '';
     };
-
-    #oidcProvider = lib.mkOption {
-    #  type = lib.types.str;
-    #  description = "OIDC provider name";
-    #  default = "Authelia";
-    #};
-
-    #authEndpoint = lib.mkOption {
-    #  type = lib.types.str;
-    #  description = "OIDC endpoint for SSO";
-    #  example = "https://authelia.example.com";
-    #};
-
-    #oidcClientID = lib.mkOption {
-    #  type = lib.types.str;
-    #  description = "Client ID for the OIDC endpoint";
-    #  default = "grocy";
-    #};
-
-    #oidcAdminUserGroup = lib.mkOption {
-    #  type = lib.types.str;
-    #  description = "OIDC admin group";
-    #  default = "grocy_admin";
-    #};
-
-    #oidcUserGroup = lib.mkOption {
-    #  type = lib.types.str;
-    #  description = "OIDC user group";
-    #  default = "grocy_user";
-    #};
-
-    #ssoSecretFile = lib.mkOption {
-    #  type = lib.types.path;
-    #  description = "File containing the SSO shared secret.";
-    #};
 
     logLevel = lib.mkOption {
       type = lib.types.nullOr (lib.types.enum ["critical" "error" "warning" "info" "debug"]);
@@ -127,71 +87,19 @@ in
     users.users.grocy.group = lib.mkForce "grocy";
 
     services.nginx.virtualHosts."${fqdn}" = {
-      extraConfig = lib.mkForce ''
-        try_files $uri /index.php;
-
-      '';
-      enableACME = lib.mkForce false; # Let SHB handle certs
+      enableACME = lib.mkForce false;
       sslCertificate = lib.mkIf (!(isNull cfg.ssl)) cfg.ssl.paths.cert;
       sslCertificateKey = lib.mkIf (!(isNull cfg.ssl)) cfg.ssl.paths.key;
     };
 
-
-
-
-    #services.nginx.virtualHosts."${fqdn}" = {
-    #  http2 = true;
-    #  forceSSL = !(isNull cfg.ssl);
-    #  sslCertificate = lib.mkIf (!(isNull cfg.ssl)) cfg.ssl.paths.cert;
-    #  sslCertificateKey = lib.mkIf (!(isNull cfg.ssl)) cfg.ssl.paths.key;
-
-    #  # https://github.com/advplyr/grocy#nginx-reverse-proxy
-    #  extraConfig = ''
-    #    set $grocy 127.0.0.1;
-    #    location / {
-    #         proxy_set_header X-Forwarded-For    $proxy_add_x_forwarded_for;
-    #         proxy_set_header  X-Forwarded-Proto $scheme;
-    #         proxy_set_header  Host              $host;
-    #         proxy_set_header Upgrade            $http_upgrade;
-    #         proxy_set_header Connection         "upgrade";
-
-    #         proxy_http_version                  1.1;
-
-    #         proxy_pass                          http://$grocy:${builtins.toString cfg.webPort};
-    #         proxy_redirect                      http:// https://;
-    #       }
-    #  '';
-    #};
-
-    #shb.authelia.oidcClients = [
-    #  {
-    #    id = cfg.oidcClientID;
-    #    description = "Audiobookshelf";
-    #    secretFile = cfg.ssoSecretFile;
-    #    public = "false";
-    #    authorization_policy = "one_factor";
-    #    redirect_uris = [ 
-    #    "https://${cfg.subdomain}.${cfg.domain}/auth/openid/callback" 
-    #    "https://${cfg.subdomain}.${cfg.domain}/auth/openid/mobile-redirect" 
-    #    ];
-    #  }
-    #];
-    #
-    ## We want grocy to create files in the media group and to make those files group readable.
-    #users.users.grocy = {
-    #  extraGroups = [ "media" ];
-    #};
-    #systemd.services.grocyd.serviceConfig.Group = lib.mkForce "media";
-    #systemd.services.grocyd.serviceConfig.UMask = lib.mkForce "0027";
-
-    ## We backup the whole grocy directory and set permissions for the backup user accordingly.
-    #users.groups.grocy.members = [ "backup" ];
-    #users.groups.media.members = [ "backup" ];
-    #shb.backup.instances.grocy = {
-    #  sourceDirectories = [
-    #    /var/lib/${config.services.grocy.dataDir}
-    #  ];
-    #};
+    # We backup the whole grocy directory and set permissions for the backup user accordingly.
+    users.groups.grocy.members = [ "backup" ];
+    users.groups.media.members = [ "backup" ];
+    shb.backup.instances.grocy = {
+      sourceDirectories = [
+        config.services.grocy.dataDir
+      ];
+    };
   } {
     systemd.services.grocyd.serviceConfig = cfg.extraServiceConfig;
   }]);

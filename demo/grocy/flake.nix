@@ -19,9 +19,6 @@
           domain = "example.com";
           subdomain = "n";
           dataDir = "/var/lib/grocy";
-
-          # This option is only needed because we do not access Nextcloud at the default port in the VM.
-          webPort = 8080;
         };
 
         # Set to true for more debug info with `journalctl -f -u nginx`.
