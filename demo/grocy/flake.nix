@@ -24,65 +24,39 @@
           webPort = 8080;
         };
 
-        # Secret needed for services.nextcloud.config.adminpassFile.
-        sops.secrets."nextcloud/adminpass" = {
-          sopsFile = ./secrets.yaml;
-          mode = "0440";
-          owner = "nextcloud";
-          group = "nextcloud";
-          restartUnits = [ "phpfpm-nextcloud.service" ];
-        };
-
         # Set to true for more debug info with `journalctl -f -u nginx`.
         shb.nginx.accessLog = true;
         shb.nginx.debugLog = false;
       };
 
-      ldap = { config, ... }: {
-        shb.ldap = {
-          enable = true;
-          domain = "example.com";
-          subdomain = "ldap";
-          ldapPort = 3890;
-          webUIListenPort = 17170;
-          dcdomain = "dc=example,dc=com";
-          ldapUserPasswordFile = config.sops.secrets."lldap/user_password".path;
-          jwtSecretFile = config.sops.secrets."lldap/jwt_secret".path;
-        };
-        sops.secrets."lldap/user_password" = {
-          sopsFile = ./secrets.yaml;
-          mode = "0440";
-          owner = "lldap";
-          group = "lldap";
-          restartUnits = [ "lldap.service" ];
-        };
-        sops.secrets."lldap/jwt_secret" = {
-          sopsFile = ./secrets.yaml;
-          mode = "0440";
-          owner = "lldap";
-          group = "lldap";
-          restartUnits = [ "lldap.service" ];
+      ssl = { config, ... }: {
+        shb.certs = {
+          cas.selfsigned.myca = {
+            name = "My CA";
+          };
+          certs.selfsigned = {
+            n = {
+              ca = config.shb.certs.cas.selfsigned.myca;
+              domain = "*.example.com";
+            };
+          };
         };
 
-        shb.nextcloud.apps.ldap = {
+        services.dnsmasq = {
           enable = true;
-          host = "127.0.0.1";
-          port = config.shb.ldap.ldapPort;
-          dcdomain = config.shb.ldap.dcdomain;
-          adminName = "admin";
-          adminPasswordFile = config.sops.secrets."nextcloud/ldap_admin_password".path;
-          userGroup = "nextcloud_user";
+          settings = {
+            domain-needed = true;
+            # no-resolv = true;
+            bogus-priv = true;
+            address =
+              map (hostname: "/${hostname}/127.0.0.1") [
+                "example.com"
+                "n.example.com"
+              ];
+          };
         };
 
-        # Secret needed for LDAP app.
-        sops.secrets."nextcloud/ldap_admin_password" = {
-          sopsFile = ./secrets.yaml;
-          key = "lldap/user_password";
-          mode = "0400";
-          owner = "nextcloud";
-          group = "nextcloud";
-          restartUnits = [ "nextcloud-setup.service" ];
-        };
+        shb.grocy.ssl = config.shb.certs.certs.selfsigned.n;
       };
 
       sso = { config, ... }: {
@@ -96,6 +70,16 @@
               domain = "*.example.com";
             };
           };
+        };
+
+        shb.grocy = {
+          enable = true;
+          domain = "example.com";
+          subdomain = "n";
+          dataDir = "/var/lib/grocy";
+
+          # This option is only needed because we do not access Nextcloud at the default port in the VM.
+          webPort = 8080;
         };
 
         services.dnsmasq = {
@@ -210,12 +194,11 @@
               basic
             ];
           };
-          ldap = selfhostblocks.inputs.nixpkgs.lib.nixosSystem {
+          ssl = selfhostblocks.inputs.nixpkgs.lib.nixosSystem {
             system = "x86_64-linux";
             modules = [
-              sopsConfig
               basic
-              ldap
+              ssl
             ];
           };
           sso = selfhostblocks.inputs.nixpkgs.lib.nixosSystem {
@@ -223,7 +206,7 @@
             modules = [
               sopsConfig
               basic
-              ldap
+              ssl
               sso
             ];
           };
@@ -249,10 +232,10 @@
             };
           };
 
-          ldap = { config, ... }: {
+          ssl = { config, ... }: {
             imports = [
               basic
-              ldap
+              ssl
             ];
 
             deployment = {
@@ -265,7 +248,7 @@
           sso = { config, ... }: {
             imports = [
               basic
-              ldap
+              ssl
               sso
             ];
 

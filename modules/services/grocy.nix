@@ -49,11 +49,11 @@ in
       example = "no";
     };
 
-    #ssl = lib.mkOption {
-    #  description = "Path to SSL files";
-    #  type = lib.types.nullOr contracts.ssl.certs;
-    #  default = null;
-    #};
+    ssl = lib.mkOption {
+      description = "Path to SSL files";
+      type = lib.types.nullOr contracts.ssl.certs;
+      default = null;
+    };
 
     extraServiceConfig = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
@@ -114,12 +114,30 @@ in
 
     services.grocy = {
       enable = true;
-      hostName = "${fqdn}:${builtins.toString cfg.webPort}";
-      nginx.enableSSL = false;
-      dataDir = "/var/lib/grocy";
+      hostName = fqdn;
+      nginx.enableSSL = !(isNull cfg.ssl);
+      dataDir = cfg.dataDir;
       settings.currency = cfg.currency;
       settings.culture = cfg.culture;
     };
+
+    services.phpfpm.pools.grocy.group = lib.mkForce "grocy";
+
+    users.groups.grocy = {};
+    users.users.grocy.group = lib.mkForce "grocy";
+
+    services.nginx.virtualHosts."${fqdn}" = {
+      extraConfig = lib.mkForce ''
+        try_files $uri /index.php;
+
+      '';
+      enableACME = lib.mkForce false; # Let SHB handle certs
+      sslCertificate = lib.mkIf (!(isNull cfg.ssl)) cfg.ssl.paths.cert;
+      sslCertificateKey = lib.mkIf (!(isNull cfg.ssl)) cfg.ssl.paths.key;
+    };
+
+
+
 
     #services.nginx.virtualHosts."${fqdn}" = {
     #  http2 = true;
